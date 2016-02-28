@@ -12,7 +12,7 @@ sw <- c(stopwords("english"),"na","NA","content")
 table1<-lapply(table1,tolower)
 desc<-unlist(table1["what"])
 i<-1
-while(i<=length(table1))
+while(i<=5709)
 {
   desc[i][[1]]<-removeWords(desc[i][[1]],sw)
   i<-i+1;
@@ -20,6 +20,49 @@ while(i<=length(table1))
 desc<-relist(desc,table1["what"])
 table1["what"]<-desc
 View(table1)
+#create a character vector for dictionary
+dict<-""
+dict<-paste(dict,desc["what"])
+dict<-strsplit(dict," ")
+dict<-unlist(dict)
+j<-1
+while(j<=length(dict))
+{
+  if(dict[j]=="")
+  {
+    dict<-dict[-j]
+  }
+  else
+  {
+    j<-j+1 
+  }
+}
+dictCorp<-Corpus(VectorSource(dict))
+Data<-rep(list(NA),5709)
+#stem completion----modify here
+stemCompletion_mod <- function(x,dict=dictCorp) {
+  stripWhitespace(paste(stemCompletion(unlist(strsplit(as.character(x)," ")),dictionary=dict, type="prevalent"),sep="", collapse=" "))
+}
+desc<-unlist(table1["what"])
+i<-1
+while(i<=5709)
+{
+  temp<-strsplit(desc[i][[1]]," ")
+  temp<-lapply(temp,stemDocument)
+  temp<-unlist(temp)
+  j<-2
+  while(j<=length(temp))
+  {
+    temp[1]<-paste(temp[1],temp[j])
+    j<-j+1
+  }
+  temp<-temp[1]
+  temp<-unlist(temp)
+  desc[i][[1]]<-temp
+  i<-i+1
+}
+desc<-relist(desc,table1["what"])
+#Now LDA
 docs<-lexicalize(desc)
 vocab=docs$vocab
 docs=docs$documents
