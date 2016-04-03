@@ -16,6 +16,9 @@ i<-1
 while(i<=5616)
 {
   temp<-desc[i,1]
+  if(is.na(temp))
+  {  temp<-desc[i-1,1]
+  }
   temp<-lapply(temp,tolower)
   temp<-lapply(temp,removePunctuation)
   temp<-lapply(temp,removeNumbers)
@@ -43,4 +46,14 @@ top.words <- top.topic.words(result$topics, 20, by.score=TRUE)
 table1['desc']<-docu
 View(result$document_sums)
 View(subset(table1,desc!="NA"))
+i<-1
+table<-data.frame(report_id=integer(),timestamp=integer(),severity=character(),topic=integer(),stringsAsFactors=FALSE)
+while(i<=5616)
+{
+  table[i,1]<-table1[i,1]
+  table[i,2]<-table1[i,2]
+  table[i,3]<-table1[i,3]
+  table[i,4]<-which.max(result$document_sums[,i])
+  i<-i+1
+}
 
