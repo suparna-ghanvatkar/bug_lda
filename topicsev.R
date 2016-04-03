@@ -56,4 +56,12 @@ while(i<=5616)
   table[i,4]<-which.max(result$document_sums[,i])
   i<-i+1
 }
-
+dist<-data.frame(severity=character(),t1=integer(),t2=integer(),t3=integer(),t4=integer(),t5=integer(),t6=integer(),t7=integer(),t8=integer(),t9=integer(),t10=integer(),stringsAsFactors=FALSE)
+i<-1
+sev<-c("trivial","minor","normal","major","critical","blocker")
+while(i<=6)
+{
+  dist[i,1]<-sev[i]
+  dist[i,2:11]<-table(subset(table,severity==sev[i])$topic)
+  i<-i+1
+}
