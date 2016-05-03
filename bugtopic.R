@@ -1,0 +1,89 @@
+library(lda)
+library(ggplot2)
+library(reshape2)
+library(tm)
+library(SnowballC)
+library(RMySQL)
+library(stringr)
+drv=dbDriver("MySQL")
+con=dbConnect(drv,dbname='new_bug_report',user='root')
+stat="select report_id,timestamp,what from Bugzilla_updates where attribute='short_desc' and what IS NOT NULL;"
+table1=dbGetQuery(con,stat)
+sw <- c(stopwords("english"),"na","NA","content","will")
+desc<-table1["what"]
+docu=""
+i<-1
+while(i<=length(table1[,1]))
+{
+  temp<-desc[i,1]
+  if(is.na(temp))
+  {  temp<-desc[i-1,1]
+  }
+  temp<-unlist(temp)
+  temp <- iconv(temp,"WINDOWS-1252","UTF-8")
+  temp<-lapply(temp,tolower)
+  temp<-lapply(temp,removePunctuation)
+  temp<-lapply(temp,removeNumbers)
+  temp<-removeWords(temp[[1]],sw)
+  temp<-strsplit(temp," ")
+  temp<-lapply(temp,stemDocument)
+  j<-2
+  while(j<=length(temp[[1]]))
+  {
+    if(temp[[1]][j]!=" ")
+    {temp[[1]][1]<-paste(temp[[1]][1],temp[[1]][j])}
+    j<-j+1
+  }
+  temp<-temp[[1]][1]
+  desc[i,1]<-relist(temp,desc[i,1])
+  docu[[i]]<-desc[i,1]
+  i<-i+1
+}
+docs<-lexicalize(docu)
+vocab=docs$vocab[2:length(docs$vocab)]
+docs<-lexicalize(docu,vocab=vocab)
+K<-10
+result<-lda.collapsed.gibbs.sampler(docs,K,vocab,800,0.1,0.01,compute.log.likelihood=TRUE)
+top.words <- top.topic.words(result$topics, 20, by.score=TRUE)
+table1['what']<-docu
+table<-data.frame(report_id=integer(),topic1=integer(),topic2=integer(),stringsAsFactors=FALSE)
+i<-1
+while(i<=length(table1[,1]))
+{
+  table[i,1]<-table1[i,1]
+  table[i,2]<-sort(result$document_sums[,i],index.return=TRUE)$ix[10]
+  table[i,3]<-sort(result$document_sums[,i],index.return=TRUE)$ix[9]
+  i<-i+1
+}
+Table<-data.frame(report_id=integer(),topic=integer(),stringsAsFactors=FALSE)
+i<-1
+j<-1
+while(i<=length(table[,1]))
+{
+  Table[j,1]<-table[i,1]
+  count<-0
+  while(table[i,1]==Table[j,1])
+  {
+    count<-count+1
+    i<-i+1
+  }
+  if(count>1)
+  {
+    t<-array(0,(2*count))
+    i<-i-count
+    k<-1
+    while(k<=length(t))
+    {
+      t[k]<-table[i,2]
+      t[k+1]<-table[i,3]
+      k<-k+2
+      i<-i+1
+    }
+    Table[j,2]<-strtoi(names(which.max(table(t))))
+  }
+  else{
+    Table[j,2]<-table[i,2]
+  }
+  j<-j+1
+}
+dbWriteTable(con, name='Bugzilla_topics', value=Table, row.names=FALSE)
