@@ -1,0 +1,94 @@
+library(lda)
+library(ggplot2)
+library(reshape2)
+library(tm)
+library(SnowballC)
+library(RMySQL)
+library(stringr)
+drv=dbDriver("MySQL")
+con=dbConnect(drv,dbname='bug_report',user='root')
+stat="select report_id,timestamp,what,prod_name from updates where attribute='short_desc' and what is not null and prod_name in ('Firefox', 'Bugzilla', 'Thunderbird', 'Core');"
+table1moz=dbGetQuery(con,stat)
+sw <- c(stopwords("english"),"na","NA","content","will")
+descmoz<-table1moz["what"]
+documoz=""
+i<-1
+while(i<=length(table1moz[,1]))
+{
+  temp<-descmoz[i,1]
+  if(is.na(temp))
+  {  temp<-descmoz[i-1,1]
+  }
+  temp<-unlist(temp)
+  temp <- iconv(temp,"WINDOWS-1252","UTF-8")
+  temp<-lapply(temp,tolower)
+  temp<-lapply(temp,removePunctuation)
+  temp<-lapply(temp,removeNumbers)
+  temp<-removeWords(temp[[1]],sw)
+  temp<-strsplit(temp," ")
+  temp<-lapply(temp,stemDocument)
+  j<-2
+  while(j<=length(temp[[1]]))
+  {
+    if(temp[[1]][j]!=" ")
+    {temp[[1]][1]<-paste(temp[[1]][1],temp[[1]][j])}
+    j<-j+1
+  }
+  temp<-temp[[1]][1]
+  descmoz[i,1]<-relist(temp,descmoz[i,1])
+  documoz[[i]]<-descmoz[i,1]
+  i<-i+1
+}
+docsmoz<-lexicalize(documoz)
+vocabmoz=docsmoz$vocab[2:length(docsmoz$vocab)]
+docsmoz<-lexicalize(documoz,vocab=vocabmoz)
+K<-10
+resultmoz<-lda.collapsed.gibbs.sampler(docsmoz,K,vocabmoz,800,0.1,0.01,compute.log.likelihood=TRUE)
+top.wordsmoz<- top.topic.words(resultmoz$topics, 20, by.score=TRUE)
+table1moz['what']<-documoz
+tablemoz<-data.frame(report_id=integer(),prod_name=character(),topic1=integer(),topic2=integer(),stringsAsFactors=FALSE)
+i<-1
+while(i<=length(table1moz[,1]))
+{
+  tablemoz[i,1]<-table1moz[i,1]
+  tablemoz[i,2]<-table1moz[i,4]
+  tablemoz[i,3]<-sort(resultmoz$document_sums[,i],index.return=TRUE)$ix[10]
+  tablemoz[i,4]<-sort(resultmoz$document_sums[,i],index.return=TRUE)$ix[9]
+  i<-i+1
+}
+Tablemoz<-data.frame(report_id=integer(),prod_name=character(),topic=integer(),stringsAsFactors=FALSE)
+i<-1
+j<-1
+while(i<=length(tablemoz[,1]))
+{
+  Tablemoz[j,1]<-tablemoz[i,1]
+  Tablemoz[j,2]<-tablemoz[i,2]
+  count<-0
+  while((tablemoz[i,1]==Tablemoz[j,1]))
+  {
+    if(tablemoz[i,2]==Tablemoz[j,2])
+    {
+      count<-count+1
+      i<-i+1
+    }
+  }
+  if(count>1)
+  {
+    t<-array(0,(2*count))
+    i<-i-count
+    k<-1
+    while(k<=length(t))
+    {
+      t[k]<-tablemoz[i,3]
+      t[k+1]<-tablemoz[i,4]
+      k<-k+2
+      i<-i+1
+    }
+    Tablemoz[j,3]<-strtoi(names(which.max(table(t))))
+  }else
+  {    
+    Tablemoz[j,3]<-tablemoz[i,3]
+  }
+  j<-j+1
+}
+dbWriteTable(con, name='topicsmoz', value=Tablemoz, row.names=FALSE)
