@@ -43,7 +43,7 @@ docsmoz<-lexicalize(documoz)
 vocabmoz=docsmoz$vocab[2:length(docsmoz$vocab)]
 docsmoz<-lexicalize(documoz,vocab=vocabmoz)
 K<-10
-resultmoz<-lda.collapsed.gibbs.sampler(docsmoz,K,vocabmoz,800,0.1,0.01,compute.log.likelihood=TRUE)
+resultmoz<-lda.collapsed.gibbs.sampler(docsmoz,K,vocabmoz,800,0.05,0.01,compute.log.likelihood=TRUE)
 top.wordsmoz<- top.topic.words(resultmoz$topics, 20, by.score=TRUE)
 table1moz['what']<-documoz
 tablemoz<-data.frame(report_id=integer(),prod_name=character(),topic1=integer(),topic2=integer(),stringsAsFactors=FALSE)
