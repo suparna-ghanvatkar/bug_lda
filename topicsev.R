@@ -65,3 +65,4 @@ while(i<=6)
   dist[i,2:11]<-table(subset(table,severity==sev[i])$topic)
   i<-i+1
 }
+ggplot(melt(dist),aes(x=variable,y=value,fill=severity))+geom_bar(stat="identity", position=position_dodge())

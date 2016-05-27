@@ -92,3 +92,56 @@ while(i<=length(tablemoz[,1]))
   j<-j+1
 }
 dbWriteTable(con, name='topicsmoz', value=Tablemoz, row.names=FALSE)
+stat<-"select report_id,prod_name,what as component from updates where prod_name='Firefox' and attribute='component'and what is not NULL order by timestamp;"
+comptab<-dbGetQuery(con,stat)
+stat<-"select report_id,topic from topicsmoz where prod_name='Firefox';"
+toptab<-dbGetQuery(con,stat)
+Tablecomp<-data.frame(report_id=integer(),comp1=character(),comp2=character(),topic=integer(),stringsAsFactors=FALSE)
+i<-1
+j<-1
+while(i<dim(comptab)[1])
+{
+  Tablecomp[j,1]=comptab[i,1]
+  Tablecomp[j,2]=comptab[i,3]
+  while(comptab[i,1]==comptab[i+1,1])
+  {
+    i<-i+1
+  }
+  if(comptab[i,3]==Tablecomp[j,2])
+  {
+    Tablecomp[j,3]="NA"
+  }else
+  {
+    Tablecomp[j,3]=comptab[i,3]
+  }
+  if(which(toptab$report_id==Tablecomp[j,1])){
+    Tablecomp[j,4]=toptab[(which(toptab$report_id==Tablecomp[j,1])),2]
+  }else
+  {
+    Tablecomp[j,4]="NA"
+  }
+  i<-i+1
+  j<-j+1
+}
+if(i==dim(comptab)[1]){
+  Tablecomp[j,1]=comptab[i,1]
+  Tablecomp[j,2]=comptab[i,3]
+  Tablecomp[j,3]="NA"
+  if(which(toptab$report_id==Tablecomp[j,1])){
+    Tablecomp[j,4]=toptab[(which(toptab$report_id==Tablecomp[j,1])),2]
+  }else
+  {
+    Tablecomp[j,4]="NA"
+  }
+}
+Tab<-subset(subset(Tablecomp,comp2!='NA'),topic!='NA')
+TableComp<-data.frame(report_id=integer(),comp=character(),topic=integer(),stringsAsFactors=FALSE)
+i<-1
+while(i<=dim(Tab)[1])
+{
+  TableComp[i,1]<-Tab[i,1]
+  TableComp[i,2]<-paste(Tab[i,2],Tab[i,3],spe=',')
+  TableComp[i,3]<-Tab[i,4]
+  i<-i+1
+}
+dbWriteTable(con, name='compfirereass', value=Tablecomp, row.names=FALSE)
