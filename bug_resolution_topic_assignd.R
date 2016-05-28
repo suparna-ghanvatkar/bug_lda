@@ -17,8 +17,6 @@ stat3="select l.* from bug_sev l inner join ( select report_id,what, max(timesta
 table3=dbGetQuery(con,stat3)
 stat4="select * from Bugzilla_topics order by report_id;"
 table4=dbGetQuery(con,stat4)
-stat5="select distinct report_id from Bugzilla_updates where attribute=\"resolution\" and what=\"INVALID\";"
-table5=dbGetQuery(con,stat5)
 tab<-data.frame(report_id=integer(),timefor_resolution=integer(),severity=character(),topic=integer(),year=integer(),stringsAsFactors=FALSE)
 i<-1
 k<-1
@@ -39,7 +37,6 @@ while(i<4617)
   i=i+1
 }
 tab<-subset(tab,!is.na(topic))
-tab<-subset(tab,report_id %in% table5[,1])
 c<-1
 tab1<-data.frame(severity=character(),no_of_bug=integer(),average_time=numeric(),year=integer(),stringsAsFactors=FALSE)
 for(y in unique(tab$year))
@@ -129,6 +126,6 @@ for(y in unique(tab$year))
     c<-c+1
   }  
 }
-ggplot(tab1,aes(x=year,y=average_time))+geom_line(aes(color=severity))+scale_color_discrete(aes(label="topics"))
+ggplot(tab1,aes(x=year,y=average_time))+geom_line(aes(color=severity))
 
 
