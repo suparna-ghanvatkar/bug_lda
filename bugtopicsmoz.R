@@ -135,13 +135,6 @@ if(i==dim(comptab)[1]){
   }
 }
 Tab<-subset(subset(Tablecomp,comp2!='NA'),topic!='NA')
-TableComp<-data.frame(report_id=integer(),comp=character(),topic=integer(),stringsAsFactors=FALSE)
-i<-1
-while(i<=dim(Tab)[1])
-{
-  TableComp[i,1]<-Tab[i,1]
-  TableComp[i,2]<-paste(Tab[i,2],Tab[i,3],spe=',')
-  TableComp[i,3]<-Tab[i,4]
-  i<-i+1
-}
+Tab<-(subset(Tab,comp1=="General"))
+ggplot(Tab[,3:4],aes(x=comp2))+geom_bar(aes(fill=topic,stat="count"))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 dbWriteTable(con, name='compfirereass', value=Tablecomp, row.names=FALSE)

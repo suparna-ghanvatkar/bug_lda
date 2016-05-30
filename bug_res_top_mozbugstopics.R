@@ -1,0 +1,70 @@
+library(ggplot2)
+library(reshape2)
+library(RMySQL)
+drv=dbDriver("MySQL")
+con=dbConnect(drv,dbname='bug_report',user='root')
+stat="select report_id,what,topic from ((select l.* from (select * from updates where prod_name=\"Bugzilla\" and attribute=\"resolution\")  l inner join ( select report_id,what, max(timestamp) as latest from updates where prod_name=\"Bugzilla\" and attribute=\"resolution\" group by report_id) r on l.timestamp = r.latest and l.report_id = r.report_id order by timestamp asc)) bug_res natural join (select report_id,topic from topicsmoz where prod_name=\"Bugzilla\") topics order by what;"
+tableres=dbGetQuery(con,stat)
+tableres<-subset(tableres,!is.na(topic))
+c<-1
+tab1<-data.frame(resolution=character(),no_of_bug=integer(),topic=integer(),stringsAsFactors=FALSE)
+for(y in unique(tableres$what))
+{
+  ctn=c(0,0,0,0,0,0,0,0,0,0)
+  i<-1
+  while(i<=nrow(subset(tableres,what==y)))
+  {
+    if(tableres[i,3]==1)
+    {
+      ctn[1]=ctn[1]+1      
+    }
+    if(tableres[i,3]==2)
+    {
+      ctn[2]=ctn[2]+1
+    }
+    if(tableres[i,3]==3)
+    {
+      ctn[3]=ctn[3]+1 
+    }
+    if(tableres[i,3]==4)
+    {
+      ctn[4]=ctn[4]+1  
+    }
+    if(tableres[i,3]==5)
+    {
+      ctn[5]=ctn[5]+1  
+    }
+    if(tableres[i,3]==6)
+    {
+      ctn[6]=ctn[6]+1   
+    }
+    if(tableres[i,3]==7)
+    {
+      ctn[7]=ctn[7]+1   
+    }
+    if(tableres[i,3]==8)
+    {
+      ctn[8]=ctn[8]+1   
+    }
+    if(tableres[i,3]==9)
+    {
+      ctn[9]=ctn[9]+1
+    }
+    if(tableres[i,3]==10)
+    {
+      ctn[10]=ctn[10]+1
+    }
+    i=i+1
+  }
+  j<-1
+  while(j<=10)
+  {
+    tab1[c,1]=y
+    tab1[c,2]=ctn[j]
+    tab1[c,3]=j
+    j<-j+1
+    c<-c+1
+  }  
+}
+p1<-ggplot(tab1,aes(x=topic,y=no_of_bug))+geom_line(aes(color=resolution))
+p1+scale_x_discrete(breaks=c(1,2,3,4,5,6,7,8,9,10))+geom_text(aes(label=no_of_bug),size=3)
